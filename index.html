@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computer Vision Portfolio · Henry Hong</title>
+<meta name="description" content="Projects from CS 180: Intro to Computer Vision and Computational Photography, UC Berkeley.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23003262' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='%23FDB515'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F5F0; --paper-2:#EDEBE3; --ink:#1a1a1a; --ink-2:#4d4f52; --ink-3:#82858a;
+  --rule:#ddd9cd; --blue:#003262; --gold:#FDB515;
+  --serif:'Instrument Serif',ui-serif,Georgia,serif;
+  --sans:'Geist',ui-sans-serif,system-ui,sans-serif;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;background-color:var(--paper);
+  background-image:radial-gradient(1100px 620px at 50% 14%, rgba(253,181,21,.10), rgba(245,245,240,0) 68%);
+  background-repeat:no-repeat;background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+img{max-width:100%;display:block}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+
+.hero{padding:96px 0 56px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--rule)}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.8rem,7.5vw,5.4rem);line-height:1;
+  letter-spacing:-.03em;margin:0 0 22px}
+h1 em{font-style:italic;color:var(--blue)}
+.dek{font-size:clamp(1.05rem,2vw,1.25rem);color:var(--ink-2);max-width:60ch;margin:0 0 32px}
+.byline{display:flex;flex-wrap:wrap;gap:10px 30px;font-size:14px;color:var(--ink-3);
+  border-top:2px solid var(--gold);padding-top:16px;max-width:600px}
+.byline b{color:var(--ink);font-weight:600}
+
+.projects{padding:clamp(4rem,8vw,6rem) 0 40px}
+.sectlabel{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 28px}
+
+.card{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:36px;align-items:center;
+  text-decoration:none;padding:2rem;margin:0 -2rem;border-radius:12px;
+  transition:background .3s cubic-bezier(.22,1,.36,1)}
+.card:hover{background:var(--paper-2)}
+@media(max-width:720px){.card{grid-template-columns:1fr;gap:22px}}
+.thumb{border-radius:12px;overflow:hidden;background:var(--paper-2);
+  border:1px solid rgba(0,0,0,.06);box-shadow:0 1px 3px rgba(0,0,0,.04);
+  transition:box-shadow .3s cubic-bezier(.22,1,.36,1)}
+.card:hover .thumb{box-shadow:0 8px 24px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.03)}
+.thumb img{width:100%}
+.card h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.8rem,3.4vw,2.5rem);
+  line-height:1.08;margin:0 0 10px;letter-spacing:-.01em}
+.card .num{font-family:var(--mono);font-size:11px;letter-spacing:.13em;color:var(--gold);
+  font-weight:600;margin-bottom:10px}
+.card p{margin:0 0 16px;color:var(--ink-2);font-size:15.5px;max-width:52ch}
+.tags{display:flex;flex-wrap:wrap;gap:7px}
+.tags span{font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  background:var(--paper-2);border:1px solid var(--rule);padding:3px 9px;border-radius:99px}
+.card:hover .tags span{background:#fff}
+.go{display:inline-flex;align-items:center;gap:7px;margin-top:16px;font-size:14px;
+  color:var(--blue);font-weight:500}
+.go::after{content:"→";transition:transform .2s}
+.card:hover .go::after{transform:translateX(4px)}
+
+.upcoming{border-top:1px solid var(--rule);margin-top:40px;padding:32px 0 0;
+  font-size:14.5px;color:var(--ink-3)}
+footer{padding:48px 0 72px;color:var(--ink-3);font-size:14px;border-top:1px solid var(--rule);margin-top:40px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-between}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">UC Berkeley &nbsp;·&nbsp; CS 180 &nbsp;·&nbsp; Fall 2026</div>
+    <h1>Computer Vision<br><em>Portfolio</em></h1>
+    <p class="dek">Coursework from Intro to Computer Vision and Computational Photography. Experiments in
+      projection, image formation, and what a camera actually records.</p>
+    <div class="byline">
+      <span><b>Henry Hong</b></span>
+      <span><a href="https://henryyhong.com">henryyhong.com</a></span>
+      <span><a href="https://github.com/HenryYHong">github.com/HenryYHong</a></span>
+    </div>
+  </div>
+</header>
+
+<main class="projects">
+  <div class="wrap">
+    <p class="sectlabel">Projects</p>
+
+    <a class="card" href="proj0/">
+      <div class="thumb"><img src="proj0/assets/dolly-b.gif" alt="Animated dolly zoom down a campus corridor" width="390" height="520"></div>
+      <div>
+        <div class="num">PROJECT 0</div>
+        <h2>Becoming Friends with Your Camera</h2>
+        <p>Perspective, focal length, and the center of projection. A selfie shot four ways, a
+          building flattened by a telephoto lens, and a dolly zoom.</p>
+        <div class="tags"><span>perspective</span><span>focal length</span><span>projection</span><span>dolly zoom</span></div>
+        <div class="go">View project</div>
+      </div>
+    </a>
+
+    <p class="upcoming">More projects from the course will be added here as the semester goes on.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>CS 180 · Intro to Computer Vision &amp; Computational Photography</span>
+    <span>Henry Hong · Fall 2026</span>
+  </div>
+</footer>
+
+</body>
+</html>

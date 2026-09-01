@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Becoming Friends with Your Camera · CS 180 Project 0 · Henry Hong</title>
+<meta name="description" content="CS 180 Project 0: perspective, focal length, and the center of projection.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23003262' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='%23FDB515'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F5F0; --paper-2:#EDEBE3; --ink:#1a1a1a; --ink-2:#4d4f52; --ink-3:#8a8d91;
+  --rule:#d9d5c9; --blue:#003262; --gold:#FDB515;
+  --serif:'Instrument Serif',ui-serif,Georgia,serif;
+  --sans:'Geist',ui-sans-serif,system-ui,sans-serif;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --rail:190px; --gut:44px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--ink);font-family:var(--sans);font-size:16.5px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;background-color:var(--paper);
+  background-image:radial-gradient(1100px 620px at 62% 8%, rgba(253,181,21,.11), rgba(245,245,240,0) 66%);
+  background-repeat:no-repeat;background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+img{max-width:100%;display:block}
+a{color:var(--blue)}
+.wrap{max-width:1220px;margin:0 auto;padding:0 clamp(20px,4vw,44px)}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3)}
+
+/* hero */
+.hero{padding:clamp(3rem,6vw,4.75rem) 0 clamp(1.75rem,3vw,2.5rem)}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.2rem,5.5vw,4.2rem);line-height:1.02;
+  letter-spacing:-.03em;margin:0 0 16px;max-width:22ch}
+.dek{font-size:1.05rem;color:var(--ink-2);max-width:58ch;margin:0 0 20px}
+.by{font-size:14px;color:var(--ink-3);margin:0}
+
+nav{position:sticky;top:0;z-index:50;background:rgba(245,245,240,.85);
+  backdrop-filter:blur(16px) saturate(180%);border-block:1px solid var(--rule)}
+nav ol{list-style:none;margin:0 auto;padding:0 clamp(20px,4vw,44px);max-width:1220px;
+  display:flex;gap:clamp(20px,3vw,38px);overflow-x:auto}
+nav a{display:block;position:relative;padding:14px 0;font-size:13px;color:var(--ink-2);
+  text-decoration:none;white-space:nowrap;transition:color .3s cubic-bezier(.22,1,.36,1)}
+nav a::after{content:"";position:absolute;left:0;right:0;bottom:9px;height:1px;background:var(--ink);
+  transform:scaleX(0);transform-origin:left;transition:transform .3s cubic-bezier(.22,1,.36,1)}
+nav a:hover{color:var(--ink)} nav a:hover::after{transform:scaleX(1)}
+nav .n{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-right:7px}
+
+/* section grid with sticky metadata rail */
+section{padding:clamp(4rem,8vw,7rem) 0;border-bottom:1px solid var(--rule)}
+.cols{display:grid;grid-template-columns:var(--rail) 1fr;gap:var(--gut)}
+@media(max-width:900px){.cols{grid-template-columns:1fr;gap:26px}}
+.rail{position:sticky;top:74px;align-self:start;border-right:1px solid var(--rule);
+  padding-right:22px;min-height:120px}
+@media(max-width:900px){.rail{position:static;border-right:0;border-bottom:1px solid var(--rule);
+  padding:0 0 18px;min-height:0;display:flex;align-items:baseline;gap:18px}}
+.rail .num{font-family:var(--serif);font-size:clamp(3rem,5vw,4.5rem);line-height:.75;
+  color:var(--gold);display:block;margin-bottom:18px}
+@media(max-width:900px){.rail .num{margin-bottom:0}}
+
+h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.9rem,4vw,2.9rem);
+  line-height:1.03;letter-spacing:-.03em;margin:0 0 10px;max-width:18ch}
+.lede{font-size:1.02rem;color:var(--ink-2);max-width:50ch;margin:0}
+.copy{max-width:58ch;margin-top:38px}
+.copy p{margin:0 0 15px}
+.copy p:last-child{margin-bottom:0}
+.eq{font-family:var(--mono);font-size:14px;color:var(--blue);background:var(--paper-2);
+  border-radius:12px;padding:15px 18px;margin:20px 0;text-align:center}
+
+figure{margin:0}
+.grid{display:grid;gap:1.5rem;margin:36px 0 0}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g2{grid-template-columns:repeat(2,1fr);gap:1.75rem}
+@media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.g4,.g2{grid-template-columns:1fr}}
+.shot{position:relative;background:var(--paper-2);border-radius:12px;overflow:hidden;
+  border:1px solid rgba(0,0,0,.06);box-shadow:0 1px 3px rgba(0,0,0,.04);
+  transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1)}
+.shot:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.03)}
+.shot img{width:100%;height:auto;transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.shot:hover img{transform:scale(1.02)}
+.chip{position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.05em;background:rgba(16,16,16,.75);color:#fff;padding:4px 11px;
+  border-radius:9999px;backdrop-filter:blur(4px)}
+.meta{margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
+  display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--rule);padding-top:7px}
+.meta b{color:var(--ink-2);font-weight:500}
+figcaption{font-size:13px;color:var(--ink-2);margin-top:10px;line-height:1.5;max-width:48ch}
+figcaption b{color:var(--ink);font-weight:600}
+.label{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.label::before{content:"";width:18px;height:1px;background:var(--gold)}
+
+.dolly{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gut);
+  align-items:start;margin-top:36px}
+@media(max-width:860px){.dolly{grid-template-columns:1fr;gap:28px}}
+.gifcard{background:#141414;border-radius:12px;overflow:hidden;max-width:390px;
+  box-shadow:0 1px 3px rgba(0,0,0,.04),0 18px 40px -28px rgba(0,0,0,.5)}
+.gifcard img{width:100%}
+.gifbar{display:flex;justify-content:space-between;padding:8px 13px;font-family:var(--mono);
+  font-size:10.5px;color:#9b9b93;letter-spacing:.05em}
+.scrub{border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:2rem;background:rgba(255,255,255,.5)}
+.stage{position:relative;aspect-ratio:3/4;background:var(--paper-2);border-radius:12px;
+  overflow:hidden;max-width:330px;margin:0 auto}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .1s}
+.stage img.on{opacity:1}
+.readout{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;
+  color:var(--ink-2);margin:14px 0 6px}
+.readout b{color:var(--blue);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--blue);margin:0}
+.hint{font-size:12px;color:var(--ink-3);margin:9px 0 0}
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:26px}
+.strip.a8{grid-template-columns:repeat(8,1fr)}
+@media(max-width:600px){.strip,.strip.a8{grid-template-columns:repeat(4,1fr)}}
+.strip figure{position:relative}
+.strip img{width:100%;border-radius:8px}
+.strip span{position:absolute;bottom:4px;left:4px;font-family:var(--mono);font-size:9px;
+  background:rgba(16,16,16,.75);color:#fff;padding:2px 7px;border-radius:9999px}
+.takeb{margin-top:46px;padding-top:30px;border-top:1px solid var(--rule)}
+.takeb h3{font-family:var(--serif);font-weight:400;font-size:1.45rem;margin:0 0 6px;letter-spacing:-.02em}
+
+footer{padding:44px 0 70px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 40px;justify-content:space-between}
+
+@media print{
+  @page{margin:14mm}
+  body{background:#fff;font-size:10.5pt}
+  body::before,nav{display:none}
+  .hero{padding:0 0 14px}
+  section{padding:20px 0}
+  .rail{position:static}
+  figure,.scrub,.gifcard,.copy{break-inside:avoid}
+  .shot{box-shadow:none}
+  .shot:hover,.shot:hover img{transform:none;box-shadow:none}
+  input[type=range],.hint{display:none}
+  a{color:var(--ink);text-decoration:none}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Becoming Friends with Your Camera</h1>
+    <p class="dek">Three experiments in perspective, focal length, and the center of projection.</p>
+    <p class="by">Henry Hong &nbsp;·&nbsp; CS 180 Project 0 &nbsp;·&nbsp; August 2026</p>
+  </div>
+</header>
+
+<nav>
+  <ol>
+    <li><a href="#part1"><span class="n">01</span>Selfie</a></li>
+    <li><a href="#part2"><span class="n">02</span>Compression</a></li>
+    <li><a href="#part3"><span class="n">03</span>Dolly Zoom</a></li>
+    <li><a href="#notes"><span class="n">04</span>Notes</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="part1">
+  <div class="wrap cols">
+    <div class="rail">
+      <span class="num">01</span>
+    </div>
+    <div>
+      <h2>The selfie at four distances</h2>
+      <p class="lede">Same face, same framing, four focal lengths. Matching the framing each time
+        means standing four different distances away.</p>
+
+      <div class="grid g4">
+        <figure>
+          <div class="shot"><span class="chip">14 mm</span><img src="assets/part1/f014.jpg" alt="Portrait at 14mm from about 25cm away" width="1050" height="1400"></div>
+          <div class="meta"><span>~25 cm</span><span>ears <b>71 %</b></span></div>
+        </figure>
+        <figure>
+          <div class="shot"><span class="chip">24 mm</span><img src="assets/part1/f024.jpg" alt="Portrait at 24mm from about 45cm away" width="1050" height="1400" loading="lazy"></div>
+          <div class="meta"><span>~45 cm</span><span>ears <b>82 %</b></span></div>
+        </figure>
+        <figure>
+          <div class="shot"><span class="chip">48 mm</span><img src="assets/part1/f048.jpg" alt="Portrait at 48mm from about 90cm away" width="1050" height="1400" loading="lazy"></div>
+          <div class="meta"><span>~90 cm</span><span>ears <b>90 %</b></span></div>
+        </figure>
+        <figure>
+          <div class="shot"><span class="chip">136 mm</span><img src="assets/part1/f136.jpg" alt="Portrait at 136mm from about 2.5m away" width="1050" height="1400" loading="lazy"></div>
+          <div class="meta"><span>~2.5 m</span><span>ears <b>96 %</b></span></div>
+        </figure>
+      </div>
+      <figcaption style="max-width:none">Focal lengths are 35 mm equivalent, read from EXIF.
+        Distances are back-solved from those. "Ears" is how large my ears project relative to my
+        nose, 10 cm closer.</figcaption>
+
+      <div class="copy">
+        <p>Wide lenses do not warp faces. A pinhole camera has no lens and does the same thing.</p>
+        <p>A feature at depth <em>d</em> projects at a size proportional to <em>f/d</em>. My nose
+          sits at <em>d</em>, my ears about 10 cm behind at <em>d</em>&nbsp;+&nbsp;10&nbsp;cm, so
+          their relative size is:</p>
+        <p class="eq"><em>d</em> &nbsp;:&nbsp; <em>d</em>&nbsp;+&nbsp;10&nbsp;cm</p>
+        <p>Focal length cancels. Only distance matters. At 25 cm my ears are 40&nbsp;% further from
+          the camera than my nose, so they project at 71&nbsp;% of the scale and the face reads as
+          distorted. At 2.5 m that same 10 cm is a 4&nbsp;% change, so the whole face projects at
+          nearly one scale. Zooming to 136 mm does not fix my face. It lets me stand far enough back
+          that there is nothing to fix.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="part2">
+  <div class="wrap cols">
+    <div class="rail">
+      <span class="num">02</span>
+    </div>
+    <div>
+      <h2>Perspective compression</h2>
+      <p class="lede">The same experiment run backwards, on a building.</p>
+
+      <div class="grid g2">
+        <figure>
+          <div class="label">Far back, zoomed in</div>
+          <div class="shot"><span class="chip">174 mm</span><img src="assets/part2/tele174.jpg" alt="Building at 174mm from far away, appearing flattened" width="1050" height="1400" loading="lazy"></div>
+          <figcaption><b>Compressed.</b> The cedars sit right behind the roofline, as if growing out
+            of it, and the facade reads flat.</figcaption>
+        </figure>
+        <figure>
+          <div class="label">Walked in, zoomed out</div>
+          <div class="shot"><span class="chip">74 mm</span><img src="assets/part2/wide074.jpg" alt="Building at 74mm from close, showing depth and a receding side wall" width="1050" height="1400" loading="lazy"></div>
+          <figcaption><b>Deep.</b> The lamppost now stands well in front of the wall, the corner
+            opens up, and the cedars drop back far enough to show sky.</figcaption>
+        </figure>
+      </div>
+
+      <div class="copy">
+        <p>Both frames put the building at about the same size, so distance is again the only
+          variable.</p>
+        <p>From far back, the depth between the building and the trees behind it is a small fraction
+          of my distance to either one, so both project at almost the same scale and the layers
+          stack flat. Walking in makes that same depth a large fraction of a much shorter distance,
+          so near things grow faster than far ones and edges converge harder.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="part3">
+  <div class="wrap cols">
+    <div class="rail">
+      <span class="num">03</span>
+    </div>
+    <div>
+      <h2>The dolly zoom</h2>
+      <p class="lede">Walk back and zoom in at the rate that holds the subject. The background does
+        not hold.</p>
+
+      <div class="dolly">
+        <div>
+          <div class="gifcard">
+            <img src="assets/dolly-b.gif" alt="Animated dolly zoom down a campus corridor" width="390" height="520">
+            <div class="gifbar"><span>7 FRAMES</span><span>24 &rarr; 87 MM</span></div>
+          </div>
+          <figcaption>I backed down a campus corridor while zooming in, holding the near seating at
+            about a constant size. The doorway at the far end swells as the corridor compresses.</figcaption>
+        </div>
+        <div class="scrub">
+          <div class="mono" style="margin-bottom:14px">Step through it</div>
+          <div class="stage" id="stage">
+            <img class="on" src="assets/dolly-b/f01.jpg" alt="Dolly zoom frame 1, 24mm">
+            <img src="assets/dolly-b/f02.jpg" alt="Dolly zoom frame 2, 30mm">
+            <img src="assets/dolly-b/f03.jpg" alt="Dolly zoom frame 3, 39mm">
+            <img src="assets/dolly-b/f04.jpg" alt="Dolly zoom frame 4, 57mm">
+            <img src="assets/dolly-b/f05.jpg" alt="Dolly zoom frame 5, 70mm">
+            <img src="assets/dolly-b/f06.jpg" alt="Dolly zoom frame 6, 74mm">
+            <img src="assets/dolly-b/f07.jpg" alt="Dolly zoom frame 7, 87mm">
+          </div>
+          <div class="readout"><span>Frame <b id="fnum">1</b> / 7</span><span><b id="fmm">24</b> mm</span></div>
+          <input type="range" id="slider" min="1" max="7" value="1" step="1" aria-label="Dolly zoom frame">
+          <p class="hint">Drag to walk the camera backwards.</p>
+        </div>
+      </div>
+
+      <div class="strip">
+        <figure><img src="assets/dolly-b/f01.jpg" alt="frame 1" loading="lazy"><span>24</span></figure>
+        <figure><img src="assets/dolly-b/f02.jpg" alt="frame 2" loading="lazy"><span>30</span></figure>
+        <figure><img src="assets/dolly-b/f03.jpg" alt="frame 3" loading="lazy"><span>39</span></figure>
+        <figure><img src="assets/dolly-b/f04.jpg" alt="frame 4" loading="lazy"><span>57</span></figure>
+        <figure><img src="assets/dolly-b/f05.jpg" alt="frame 5" loading="lazy"><span>70</span></figure>
+        <figure><img src="assets/dolly-b/f06.jpg" alt="frame 6" loading="lazy"><span>74</span></figure>
+        <figure><img src="assets/dolly-b/f07.jpg" alt="frame 7" loading="lazy"><span>87</span></figure>
+      </div>
+
+      <div class="copy">
+        <p>The subject sits at <em>d</em>. Holding <em>f/d</em> constant as I retreat keeps its size
+          fixed in the frame.</p>
+        <p>The far end of the corridor is at <em>d</em>&nbsp;+&nbsp;Δ and scales as
+          <em>f</em>/(<em>d</em>&nbsp;+&nbsp;Δ), so relative to the subject it is:</p>
+        <p class="eq"><em>d</em> / (<em>d</em>&nbsp;+&nbsp;Δ)</p>
+        <p>As I walk back, <em>d</em> grows while Δ stays fixed, so that ratio climbs toward 1. The
+          background swells while the subject stays put. It is the Part 2 effect, animated.</p>
+      </div>
+
+      <div class="takeb">
+        <h3>Second take</h3>
+        <p class="lede" style="margin-bottom:20px">Eight frames down the same corridor, 24 to 95 mm.</p>
+        <div class="dolly">
+          <div class="gifcard">
+            <img src="assets/dolly-a.gif" alt="Second dolly zoom take, eight frames" width="390" height="520" loading="lazy">
+            <div class="gifbar"><span>8 FRAMES</span><span>24 &rarr; 95 MM</span></div>
+          </div>
+          <div class="strip a8" style="margin-top:0">
+            <figure><img src="assets/dolly-a/f01.jpg" alt="take A frame 1" loading="lazy"><span>24</span></figure>
+            <figure><img src="assets/dolly-a/f02.jpg" alt="take A frame 2" loading="lazy"><span>30</span></figure>
+            <figure><img src="assets/dolly-a/f03.jpg" alt="take A frame 3" loading="lazy"><span>44</span></figure>
+            <figure><img src="assets/dolly-a/f04.jpg" alt="take A frame 4" loading="lazy"><span>50</span></figure>
+            <figure><img src="assets/dolly-a/f05.jpg" alt="take A frame 5" loading="lazy"><span>58</span></figure>
+            <figure><img src="assets/dolly-a/f06.jpg" alt="take A frame 6" loading="lazy"><span>69</span></figure>
+            <figure><img src="assets/dolly-a/f07.jpg" alt="take A frame 7" loading="lazy"><span>79</span></figure>
+            <figure><img src="assets/dolly-a/f08.jpg" alt="take A frame 8" loading="lazy"><span>95</span></figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="notes">
+  <div class="wrap cols">
+    <div class="rail">
+      <span class="num">04</span>
+    </div>
+    <div>
+      <h2>Notes</h2>
+      <div class="copy" style="margin-top:22px">
+        <p>Shot handheld on an iPhone 14 Pro Max. Every focal length here is the 35 mm equivalent
+          from the file's EXIF, not an estimate. The phone switches between its ultrawide, wide and
+          telephoto cameras across this range, so the physical focal length jumps between 2.22, 6.86
+          and 9 mm.</p>
+        <p>Images were rotated upright from their EXIF flag, resized to 1400 px and saved as
+          progressive JPEG. The animations run at 150 ms per frame and play forward then backward so
+          they loop cleanly. No cropping, retouching or alignment.</p>
+        <p>One caveat on Part 3. The zoom was stepped by thumb between handheld shots, so the
+          foreground drifts a little rather than holding exactly. The background swells far more than
+          the foreground drifts, so the effect still reads, but the match is approximate.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">CS 180 &nbsp;/&nbsp; Computational Photography</span>
+    <span class="mono">Henry Hong &nbsp;/&nbsp; Project 0</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var slider=document.getElementById('slider'); if(!slider) return;
+  var frames=Array.prototype.slice.call(document.querySelectorAll('#stage img'));
+  var mm=[24,30,39,57,70,74,87];
+  var fnum=document.getElementById('fnum'), fmm=document.getElementById('fmm');
+  function show(i){
+    frames.forEach(function(img,k){ img.classList.toggle('on', k===i); });
+    fnum.textContent=i+1; fmm.textContent=mm[i];
+  }
+  slider.addEventListener('input',function(){ show(parseInt(slider.value,10)-1); });
+  show(0);
+})();
+</script>
+</body>
+</html>
