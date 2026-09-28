@@ -8,5 +8,6 @@ Live site: https://henryyhong.github.io/ComputerVisionPortfolio/
 | --- | --- | --- |
 | 0 | Becoming Friends with Your Camera | [proj0/](proj0/) |
 | 1 | Images of the Russian Empire | [proj1/](proj1/) |
+| 2 | Fun with Filters and Frequencies | [proj2/](proj2/) |
 
 Static HTML, no build step. Served by GitHub Pages from `main`.
