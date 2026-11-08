@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Image Warping and Mosaicing · CS 180 Project 4 · Henry Hong</title>
-<meta name="description" content="CS 180 Project 4A: recovering homographies from point correspondences, inverse warping with nearest neighbor and bilinear interpolation, rectification, and photo mosaics with feathered and two-band blending.">
+<meta name="description" content="CS 180 Project 4: homographies from point correspondences, inverse warping, rectification, photo mosaics with two-band blending, and automatic stitching with Harris corners, ANMS, MOPS descriptors, feature matching and RANSAC.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23003262' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='%23FDB515'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -191,6 +191,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
 .mosaic{margin-top:44px}
 .mosaic h3{font-family:var(--serif);font-weight:400;font-size:1.6rem;margin:0 0 4px}
 .wide.one{grid-template-columns:1fr}
+.grid.g13{grid-template-columns:1fr 3.4fr;align-items:end}
+@media(max-width:620px){.grid.g13{grid-template-columns:1fr}}
+.tscroll{overflow-x:auto}
+.tscroll td{white-space:nowrap}
+@media print{.mosaic{break-after:avoid;page-break-after:avoid}}
 </style>
 <script>
   try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
@@ -202,11 +207,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
   <div class="wrap">
     <div class="eyebrow">CS 180 &nbsp;·&nbsp; Fall 2026 &nbsp;·&nbsp; Project 4</div>
     <h1>Image Warping<br>and <em>Mosaicing</em></h1>
-    <p class="dek">Homographies from point matches, rectifying photos, and stitching photos into panoramas.</p>
+    <p class="dek">Homographies from point matches, rectifying photos, and stitching photos into panoramas, first from hand-picked points and then automatically.</p>
     <div class="byline">
       <span><b>Henry Hong</b></span>
       <span>Intro to Computer Vision &amp; Computational Photography</span>
-      <span>October 2026</span>
+      <span>October and November 2026</span>
     </div>
   </div>
 </header>
@@ -219,6 +224,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
     <li><a href="#a3"><span class="n">03</span>Warping</a></li>
     <li><a href="#a4"><span class="n">04</span>Mosaics</a></li>
     <li><a href="#blend"><span class="n">05</span>Blending</a></li>
+    <li><a href="#b1"><span class="n">06</span>Corners</a></li>
+    <li><a href="#b2"><span class="n">07</span>Descriptors</a></li>
+    <li><a href="#b3"><span class="n">08</span>Matching</a></li>
+    <li><a href="#b4"><span class="n">09</span>RANSAC</a></li>
+    <li><a href="#auto"><span class="n">10</span>Auto mosaics</a></li>
   </ol>
   <button class="theme" type="button" aria-label="Toggle nighttime mode" title="Sunlight / nighttime">
     <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -359,10 +369,10 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
     <div class="grid g3 wide"><figure><div class="shot"><img src="assets/a3_facade_points.jpg" alt="input + corners" width="594" height="792" loading="lazy"><span class="chip">input + corners</span></div><figcaption><b>facade</b>: the 3 &times; 2 grid of windows on the side of the building</figcaption></figure><figure><div class="shot"><img src="assets/a3_facade_nn.jpg" alt="nearest neighbor" width="321" height="401" loading="lazy"><span class="chip">nearest neighbor</span></div></figure><figure><div class="shot"><img src="assets/a3_facade_bilinear.jpg" alt="bilinear" width="321" height="401" loading="lazy"><span class="chip hi">bilinear</span></div></figure></div><div class="grid g3 wide"><figure><div class="shot"><img src="assets/a3_tiles_points.jpg" alt="input + corners" width="594" height="792" loading="lazy"><span class="chip">input + corners</span></div><figcaption><b>tiles</b>: the metal access hatch in the floor</figcaption></figure><figure><div class="shot"><img src="assets/a3_tiles_nn.jpg" alt="nearest neighbor" width="641" height="580" loading="lazy"><span class="chip">nearest neighbor</span></div></figure><figure><div class="shot"><img src="assets/a3_tiles_bilinear.jpg" alt="bilinear" width="641" height="580" loading="lazy"><span class="chip hi">bilinear</span></div></figure></div>
     <div class="grid g2 wide"><figure><div class="shot"><img src="assets/a3_facade_zoom.jpg" alt="6x zoom" width="976" height="480" loading="lazy"><span class="chip">6x zoom</span></div><figcaption><b>facade</b>, middle of the window grid. Left: nearest neighbor. Right: bilinear.</figcaption></figure><figure><div class="shot"><img src="assets/a3_tiles_zoom.jpg" alt="6x zoom" width="976" height="480" loading="lazy"><span class="chip">6x zoom</span></div><figcaption><b>tiles</b>, middle of the hatch. Left: nearest neighbor. Right: bilinear.</figcaption></figure></div>
     <div class="body-copy" style="margin-top:36px">
-      <p>The lines that should be straight and parallel come out that way: the window rows and columns in the facade, and the seams between the floor slabs. Nearest neighbor turns edges into stairs, which is easiest to see on the window sills. Bilinear keeps them smooth and is only a little softer. It does 4 lookups plus the weights for every pixel instead of 1, and took about 2.4x as long:</p>
+      <p>The lines that should be straight and parallel come out that way: the window rows and columns in the facade, and the seams between the floor slabs. Nearest neighbor turns edges into stairs, which is easiest to see on the window sills. Bilinear keeps them smooth and is only a little softer. It does 4 lookups plus the weights for every pixel instead of 1, and took about 2.3x as long:</p>
       <table>
         <tr><th>photo</th><th>output</th><th>nearest neighbor</th><th>bilinear</th></tr>
-        <tr><td>facade</td><td class='num'>321 &times; 401</td><td class='num'>6 ms</td><td class='num'>14 ms</td></tr><tr><td>tiles</td><td class='num'>641 &times; 580</td><td class='num'>19 ms</td><td class='num'>48 ms</td></tr>
+        <tr><td>facade</td><td class='num'>321 &times; 401</td><td class='num'>6 ms</td><td class='num'>14 ms</td></tr><tr><td>tiles</td><td class='num'>641 &times; 580</td><td class='num'>19 ms</td><td class='num'>45 ms</td></tr>
       </table>
       <p>I used bilinear for the mosaics. The speed difference is small and the jagged edges would show up in every overlap.</p>
     </div>
@@ -411,6 +421,124 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
     <div class="insight">
       <h3>Why two bands work</h3>
       <p>Each band needs a different kind of transition. Coarse things like brightness need a wide, gradual one, or you see a jump. Fine things like edges need a sharp one, or two slightly misaligned copies get averaged into a ghost. Feathering gives everything a wide transition and overwrite gives everything a sharp one. Two bands give each its own.</p>
+    </div>
+  </div>
+</section>
+
+<section id="b1">
+  <div class="wrap">
+    <div class="shead">
+      <div class="snum">06</div>
+      <div>
+        <p class="tag">Part B.1</p>
+        <h2>Corners</h2>
+        <p class="lede">Finding corners with Harris, then keeping 500 that are spread over the whole photo.</p>
+      </div>
+    </div>
+    <div class="body-copy" style="margin-top:36px">
+      <p>Part B makes the same three mosaics without picking any points by hand. It follows "Multi-Image Matching using Multi-Scale Oriented Patches" by Brown, Szeliski and Winder, with a few simplifications: one scale, no rotation, and plain nearest neighbor search instead of their wavelet index.</p>
+      <p>Corners are good points to match because they're easy to find again in the next photo. Around a corner the image changes in every direction, unlike an edge (one direction) or a flat patch (none). I used the course's Harris code, which keeps every local maximum of the corner strength. In the middle campus photo that's 29,222 corners, far too many, and they cover everything, including the noise in the sky.</p>
+      <p>Keeping the strongest 500 doesn't work well either. Strong corners bunch up wherever there's a lot of contrast, and two photos might only overlap in a strip. Adaptive non-maximal suppression (ANMS) spreads them out. Each corner gets a radius: the distance to the nearest corner that's clearly stronger than it, meaning its strength is less than c<sub>robust</sub> = 0.9 times the other one's. The strongest corner has nothing stronger, so its radius is infinite. Then I keep the 500 corners with the biggest radius. A big radius means a corner is the strongest thing for a long way around, so the ones that are kept end up spread evenly.</p>
+      <p>With 29,222 corners, a table of every distance would take 6.8 GB, so I sort the corners strongest first and do 500 rows at a time. Only corners earlier in the sorted list can suppress a corner, so each chunk only has to look at the start of the list.</p>
+    </div>
+    <div class="grid one wide" style="max-width:1100px"><figure><div class="shot"><img src="assets/b1_campus_corners.jpg" alt="campus · 7469" width="1287" height="864" loading="lazy"><span class="chip">campus · 7469</span></div><figcaption><b>campus</b>, middle photo. Left: all 29,222 Harris corners. Right: the 500 ANMS keeps.</figcaption></figure><figure><div class="shot"><img src="assets/b1_street_corners.jpg" alt="street · 7497" width="1287" height="864" loading="lazy"><span class="chip">street · 7497</span></div><figcaption><b>street</b>, middle photo. Left: all 28,371 Harris corners. Right: the 500 ANMS keeps.</figcaption></figure></div>
+    <div class="body-copy">
+      <p>A lot of the 500 land in the sky. The paper drops weak corners with a threshold, but this Harris code keeps every local maximum, and inside a flat cloud a weak blip can be the strongest thing for 50 pixels around. Those corners mostly get thrown out later.</p>
+    </div>
+  </div>
+</section>
+
+<section id="b2">
+  <div class="wrap">
+    <div class="shead">
+      <div class="snum">07</div>
+      <div>
+        <p class="tag">Part B.2</p>
+        <h2>Descriptors</h2>
+        <p class="lede">Describing each corner with a small, blurry, normalized patch.</p>
+      </div>
+    </div>
+    <div class="body-copy" style="margin-top:36px">
+      <p>To match corners between photos, each one needs a description that comes out about the same in both. Mine is an 8 &times; 8 patch sampled from the 40 &times; 40 window around the corner, with the samples 5 pixels apart.</p>
+      <p>Why not just the 8 &times; 8 pixels around the corner? The paper found that Harris corners are usually 1 to 3 pixels off, so the same corner lands in a slightly different spot in each photo. On a fine texture, a shift of a couple of pixels changes every raw pixel. Samples 5 pixels apart on a blurred image barely change. The bigger window also has more in it to recognize: a whole window frame instead of a bit of wall.</p>
+      <p>I blur the photo (Gaussian, &sigma; = 2) before taking every 5th pixel. Without the blur, fine patterns alias into fake coarse ones, like the downsampling in Project 2. Then I subtract the patch's mean and divide by its standard deviation, so a brighter or higher contrast copy of the same patch gives the same 64 numbers. That matters because the phone's auto exposure changes a little between shots.</p>
+    </div>
+    <div class="grid g13 wide"><figure><div class="shot"><img src="assets/b2_campus_where.jpg" alt="where" width="700" height="933" loading="lazy"><span class="chip">where</span></div><figcaption>Six of the 500 features in 7469.</figcaption></figure><figure><div class="shot"><img src="assets/b2_campus_features.jpg" alt="40 &times; 40 &rarr; 8 &times; 8" width="1397" height="501" loading="lazy"><span class="chip">40 &times; 40 &rarr; 8 &times; 8</span></div><figcaption>Top: the 40 &times; 40 window around each feature. Bottom: its 8 &times; 8 descriptor, a blurry thumbnail of the window. Number 6 is on the roof tiles, a pattern that looks the same in a lot of places.</figcaption></figure></div>
+  </div>
+</section>
+
+<section id="b3">
+  <div class="wrap">
+    <div class="shead">
+      <div class="snum">08</div>
+      <div>
+        <p class="tag">Part B.3</p>
+        <h2>Matching</h2>
+        <p class="lede">Pairing up features that look alike, but only when the best match clearly beats the second best.</p>
+      </div>
+    </div>
+    <div class="body-copy" style="margin-top:36px">
+      <p>For each feature in one photo, I find the closest descriptor in the other photo by the sum of squared differences. All 500 &times; 500 errors come out of one matrix product, using |a &minus; b|&sup2; = |a|&sup2; + |b|&sup2; &minus; 2 a&middot;b.</p>
+      <p>The closest match alone isn't enough. Some features are distinctive and some aren't, so no single error cleanly separates right matches from wrong ones (Figure 6a in the paper). Lowe's trick is to compare the best match to the second best. The second best is almost surely wrong, so it shows what a wrong match costs for that particular feature, and a real match should be much better than that. A roof tile that looks like ten other roof tiles has a best and second best that are about equally good, so it gets dropped.</p>
+      <p>In the paper's Figure 6b, wrong matches are rare until the ratio of squared errors gets to about 0.4 or 0.5, and then they shoot up. To pick a number, I checked the matches against my Part A homographies. A match counts as right if it lands within 3 pixels of where H says it should. Each cell is right matches / all matches:</p>
+      <div class="tscroll"><table>
+        <tr><th>pair</th><th>0.3</th><th>0.4</th><th><b>0.5</b></th><th>0.6</th><th>0.7</th></tr>
+        <tr><td>campus 7467 &rarr; 7469</td><td class='num'>114 / 134</td><td class='num'>117 / 139</td><td class='num'>119 / 146</td><td class='num'>120 / 158</td><td class='num'>123 / 184</td></tr><tr><td>campus 7469 &rarr; 7471</td><td class='num'>112 / 138</td><td class='num'>121 / 154</td><td class='num'>126 / 167</td><td class='num'>132 / 185</td><td class='num'>139 / 211</td></tr><tr><td>street 7496 &rarr; 7497</td><td class='num'>35 / 73</td><td class='num'>44 / 93</td><td class='num'>55 / 115</td><td class='num'>64 / 139</td><td class='num'>67 / 163</td></tr><tr><td>street 7497 &rarr; 7498</td><td class='num'>65 / 91</td><td class='num'>83 / 119</td><td class='num'>89 / 132</td><td class='num'>95 / 155</td><td class='num'>100 / 187</td></tr><tr><td>gables 7505 &rarr; 7506</td><td class='num'>57 / 88</td><td class='num'>67 / 107</td><td class='num'>75 / 127</td><td class='num'>85 / 147</td><td class='num'>92 / 182</td></tr><tr><td>gables 7506 &rarr; 7507</td><td class='num'>59 / 115</td><td class='num'>74 / 143</td><td class='num'>84 / 170</td><td class='num'>89 / 190</td><td class='num'>94 / 223</td></tr>
+      </table></div>
+      <p>I used 0.5. Going up to 0.7 adds a few right matches and a lot more wrong ones.</p>
+    </div>
+    <div class="grid one wide"><figure><div class="shot"><img src="assets/b3_street_01_matches.jpg" alt="street · 7496 &rarr; 7497" width="1497" height="992" loading="lazy"><span class="chip">street · 7496 &rarr; 7497</span></div><figcaption>Every match between the first two street photos, one color per match.</figcaption></figure></div>
+    <div class="body-copy">
+      <p>Most of the wrong matches are in the sky, and they aren't bad descriptor matches. The same cloud really was found in both photos, but it moved in the seconds between shots, so it doesn't fit the homography that lines up the buildings. In the figure, the lines in the sky are parallel to each other but at a slightly different angle from the lines on the buildings.</p>
+    </div>
+  </div>
+</section>
+
+<section id="b4">
+  <div class="wrap">
+    <div class="shead">
+      <div class="snum">09</div>
+      <div>
+        <p class="tag">Part B.4</p>
+        <h2>RANSAC</h2>
+        <p class="lede">Fitting H to the matches that agree with each other and ignoring the rest.</p>
+      </div>
+    </div>
+    <div class="body-copy" style="margin-top:36px">
+      <p>Even after the ratio test, a lot of matches are wrong, and least squares on all of them would get pulled off by the bad ones. So I used RANSAC. Pick 4 random matches, fit H to them with <code>computeH</code> from Part A, and count how many of all the matches that H puts within 2 pixels of their partner. Those are its inliers. Repeat, and keep the H with the most inliers.</p>
+      <p>Four is the fewest matches that pin down H (8 unknowns, 2 equations each). If all 4 are right, that H puts most of the other right matches in the right place too. If even one is wrong, almost nothing agrees with it. In the worst pair about 52% of the matches are inliers, so a random 4 are all right about 7% of the time, and 60 tries would find a clean sample with 99 percent certainty. I used 1000 to be safe, which takes about 45 ms.</p>
+      <p>The winning H comes from 4 points that are each off by a pixel or so. So at the end I fit H again with least squares on all of its inliers, which averages that out.</p>
+    </div>
+    <div class="grid one wide"><figure><div class="shot"><img src="assets/b4_street_01_ransac.jpg" alt="street · 7496 &rarr; 7497" width="1497" height="992" loading="lazy"><span class="chip hi">street · 7496 &rarr; 7497</span></div><figcaption>The same matches after RANSAC. Green: inliers. Red: thrown out.</figcaption></figure></div><div class="grid g2 wide"><figure><div class="shot"><img src="assets/b4_campus_01_ransac.jpg" alt="campus · 7467 &rarr; 7469" width="1504" height="992" loading="lazy"><span class="chip">campus · 7467 &rarr; 7469</span></div></figure><figure><div class="shot"><img src="assets/b4_gables_12_ransac.jpg" alt="gables · 7506 &rarr; 7507" width="1496" height="992" loading="lazy"><span class="chip">gables · 7506 &rarr; 7507</span></div></figure></div>
+    <div class="body-copy">
+      <p>My Part A points are a fair test of the automatic H, because RANSAC never sees them. The last two columns are how far they land from their partners with the Part A H and with the automatic one:</p>
+      <div class="tscroll"><table>
+        <tr><th>pair</th><th>matches</th><th>inliers</th><th>Part A H</th><th>automatic H</th></tr>
+        <tr><td>campus 7467 &rarr; 7469</td><td class='num'>146</td><td class='num'>117</td><td class='num'>0.37 px</td><td class='num'>0.68 px</td></tr><tr><td>campus 7469 &rarr; 7471</td><td class='num'>167</td><td class='num'>122</td><td class='num'>0.39 px</td><td class='num'>0.85 px</td></tr><tr><td>street 7496 &rarr; 7497</td><td class='num'>115</td><td class='num'>60</td><td class='num'>0.97 px</td><td class='num'>2.86 px</td></tr><tr><td>street 7497 &rarr; 7498</td><td class='num'>132</td><td class='num'>73</td><td class='num'>0.51 px</td><td class='num'>0.71 px</td></tr><tr><td>gables 7505 &rarr; 7506</td><td class='num'>127</td><td class='num'>72</td><td class='num'>0.78 px</td><td class='num'>1.06 px</td></tr><tr><td>gables 7506 &rarr; 7507</td><td class='num'>170</td><td class='num'>93</td><td class='num'>0.55 px</td><td class='num'>1.65 px</td></tr>
+      </table></div>
+      <p>Two kinds of matches got thrown out. One is the sky, because the clouds drifted unevenly and never agree with one H within 2 pixels. The other, in the street pair, is most of the parking lot and the long building next to it at the bottom, which are much closer than the rest of the scene (12 of the 21 matches in the bottom quarter got thrown out). I turned the phone in my hand, so the lens moved a few centimeters between shots. Far things barely shift from that and near things shift a lot (parallax), so no single homography fits both. RANSAC fit the layer with the most matches, the houses and trees in the middle distance. That's why the automatic H is 2.9 pixels off on my Part A points for that pair: some of those points are on the near stuff, so the Part A H is a compromise between the two distances.</p>
+    </div>
+  </div>
+</section>
+
+<section id="auto">
+  <div class="wrap">
+    <div class="shead">
+      <div class="snum">10</div>
+      <div>
+        <p class="tag">Part B.4</p>
+        <h2>Automatic mosaics</h2>
+        <p class="lede">The same three mosaics from Part A's points and fully automatic, side by side.</p>
+      </div>
+    </div>
+    <div class="body-copy" style="margin-top:36px">
+      <p>Both versions use the same warping and two-band blending from Part A. The only difference is where the homographies come from.</p>
+    </div>
+    <div class="mosaic wide"><h3>campus</h3></div><div class="grid one wide" style="margin-top:14px"><figure><div class="shot"><img src="assets/b4_campus_compare.jpg" alt="Part A &nbsp;|&nbsp; automatic" width="1800" height="712" loading="lazy"><span class="chip hi">Part A &nbsp;|&nbsp; automatic</span></div><figcaption>Left: H from the Part A points. Right: H from feature matching and RANSAC.</figcaption></figure></div><div class="mosaic wide"><h3>street</h3></div><div class="grid one wide" style="margin-top:14px"><figure><div class="shot"><img src="assets/b4_street_compare.jpg" alt="Part A &nbsp;|&nbsp; automatic" width="1800" height="798" loading="lazy"><span class="chip hi">Part A &nbsp;|&nbsp; automatic</span></div><figcaption>Left: H from the Part A points. Right: H from feature matching and RANSAC.</figcaption></figure></div><div class="mosaic wide"><h3>gables</h3></div><div class="grid one wide" style="margin-top:14px"><figure><div class="shot"><img src="assets/b4_gables_compare.jpg" alt="Part A &nbsp;|&nbsp; automatic" width="1800" height="811" loading="lazy"><span class="chip hi">Part A &nbsp;|&nbsp; automatic</span></div><figcaption>Left: H from the Part A points. Right: H from feature matching and RANSAC.</figcaption></figure></div>
+    <div class="grid one wide" style="max-width:1100px"><figure><div class="shot"><img src="assets/b4_street_zoom.jpg" alt="zoom" width="1600" height="529" loading="lazy"><span class="chip">zoom</span></div><figcaption>The near part of the street mosaic, where the two H's disagree the most. Left: Part A. Right: automatic. Neither has ghosts or breaks, even though the automatic H is a few pixels off down here.</figcaption></figure></div>
+    <div class="insight">
+      <h3>What RANSAC is really choosing</h3>
+      <p>RANSAC doesn't only throw out bad matches. When the scene has things at different distances and the camera moved a little, it picks one distance to line up, whichever has the most matches. Here that's the city in the middle distance, which fills most of each photo. My Part A points on the parking lot land up to 9 pixels off with the automatic H. It doesn't show, because the two-band blend takes the fine detail at each pixel from one photo only, so there's nothing to double.</p>
     </div>
   </div>
 </section>
