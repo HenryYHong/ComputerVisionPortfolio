@@ -229,6 +229,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
     <li><a href="#b3"><span class="n">08</span>Matching</a></li>
     <li><a href="#b4"><span class="n">09</span>RANSAC</a></li>
     <li><a href="#auto"><span class="n">10</span>Auto mosaics</a></li>
+    <li><a href="#b5"><span class="n">11</span>Recognition</a></li>
   </ol>
   <button class="theme" type="button" aria-label="Toggle nighttime mode" title="Sunlight / nighttime">
     <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -369,10 +370,10 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
     <div class="grid g3 wide"><figure><div class="shot"><img src="assets/a3_facade_points.jpg" alt="input + corners" width="594" height="792" loading="lazy"><span class="chip">input + corners</span></div><figcaption><b>facade</b>: the 3 &times; 2 grid of windows on the side of the building</figcaption></figure><figure><div class="shot"><img src="assets/a3_facade_nn.jpg" alt="nearest neighbor" width="321" height="401" loading="lazy"><span class="chip">nearest neighbor</span></div></figure><figure><div class="shot"><img src="assets/a3_facade_bilinear.jpg" alt="bilinear" width="321" height="401" loading="lazy"><span class="chip hi">bilinear</span></div></figure></div><div class="grid g3 wide"><figure><div class="shot"><img src="assets/a3_tiles_points.jpg" alt="input + corners" width="594" height="792" loading="lazy"><span class="chip">input + corners</span></div><figcaption><b>tiles</b>: the metal access hatch in the floor</figcaption></figure><figure><div class="shot"><img src="assets/a3_tiles_nn.jpg" alt="nearest neighbor" width="641" height="580" loading="lazy"><span class="chip">nearest neighbor</span></div></figure><figure><div class="shot"><img src="assets/a3_tiles_bilinear.jpg" alt="bilinear" width="641" height="580" loading="lazy"><span class="chip hi">bilinear</span></div></figure></div>
     <div class="grid g2 wide"><figure><div class="shot"><img src="assets/a3_facade_zoom.jpg" alt="6x zoom" width="976" height="480" loading="lazy"><span class="chip">6x zoom</span></div><figcaption><b>facade</b>, middle of the window grid. Left: nearest neighbor. Right: bilinear.</figcaption></figure><figure><div class="shot"><img src="assets/a3_tiles_zoom.jpg" alt="6x zoom" width="976" height="480" loading="lazy"><span class="chip">6x zoom</span></div><figcaption><b>tiles</b>, middle of the hatch. Left: nearest neighbor. Right: bilinear.</figcaption></figure></div>
     <div class="body-copy" style="margin-top:36px">
-      <p>The lines that should be straight and parallel come out that way: the window rows and columns in the facade, and the seams between the floor slabs. Nearest neighbor turns edges into stairs, which is easiest to see on the window sills. Bilinear keeps them smooth and is only a little softer. It does 4 lookups plus the weights for every pixel instead of 1, and took about 2.3x as long:</p>
+      <p>The lines that should be straight and parallel come out that way: the window rows and columns in the facade, and the seams between the floor slabs. Nearest neighbor turns edges into stairs, which is easiest to see on the window sills. Bilinear keeps them smooth and is only a little softer. It does 4 lookups plus the weights for every pixel instead of 1, and took about 2.4x as long:</p>
       <table>
         <tr><th>photo</th><th>output</th><th>nearest neighbor</th><th>bilinear</th></tr>
-        <tr><td>facade</td><td class='num'>321 &times; 401</td><td class='num'>6 ms</td><td class='num'>14 ms</td></tr><tr><td>tiles</td><td class='num'>641 &times; 580</td><td class='num'>19 ms</td><td class='num'>45 ms</td></tr>
+        <tr><td>facade</td><td class='num'>321 &times; 401</td><td class='num'>6 ms</td><td class='num'>14 ms</td></tr><tr><td>tiles</td><td class='num'>641 &times; 580</td><td class='num'>20 ms</td><td class='num'>48 ms</td></tr>
       </table>
       <p>I used bilinear for the mosaics. The speed difference is small and the jagged edges would show up in every overlap.</p>
     </div>
@@ -539,6 +540,34 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-bet
     <div class="insight">
       <h3>What RANSAC is really choosing</h3>
       <p>RANSAC doesn't only throw out bad matches. When the scene has things at different distances and the camera moved a little, it picks one distance to line up, whichever has the most matches. Here that's the city in the middle distance, which fills most of each photo. My Part A points on the parking lot land up to 9 pixels off with the automatic H. It doesn't show, because the two-band blend takes the fine detail at each pixel from one photo only, so there's nothing to double.</p>
+    </div>
+  </div>
+</section>
+
+<section id="b5">
+  <div class="wrap">
+    <div class="shead">
+      <div class="snum">11</div>
+      <div>
+        <p class="tag">Part B.5 &middot; bells &amp; whistles</p>
+        <h2>Panorama recognition</h2>
+        <p class="lede">Handing it a pile of photos in no order and letting it find the panoramas.</p>
+      </div>
+    </div>
+    <div class="body-copy" style="margin-top:36px">
+      <p>For B.5 I did panorama recognition, from Brown and Lowe's "Automatic Panoramic Image Stitching using Invariant Features". The input is a pile of 12 photos in no order: the 9 from my three mosaics, plus 3 from another pan I never stitched (7489, 7490 and 7493). Nothing tells it which photos go together or in what order.</p>
+      <p>It runs Part B on every pair, 66 pairs in all: features, matching and RANSAC. Then it decides which pairs really overlap. Photos that don't overlap still give RANSAC a few inliers by chance, so Brown and Lowe only accept a pair if it has more than 8 + 0.3 n<sub>f</sub> inliers, where n<sub>f</sub> is the number of features that land in the overlap. That threw out my real street and gables pairs. A lot of my features are on clouds that moved between shots, so they're in the overlap but can never be inliers. I kept their test but used 0.1 instead of 0.3. Pairs from different groups never got more than 7 inliers and the weakest pair it kept had 21, so there's still a wide gap.</p>
+      <p>Photos connected by accepted pairs form a group. In each group, the reference is the photo with the most inliers to the others, which turns out to be the middle one. Then it grows out from the reference along the strongest pair left (a maximum spanning tree) and chains the H's, like in Part A. Last, it orders each group left to right by where its photos land, and stitches it with the Part A code.</p>
+    </div>
+    <div class="grid one wide" style="max-width:1100px"><figure><div class="shot"><img src="assets/b5_pile.jpg" alt="the pile" width="1600" height="727" loading="lazy"><span class="chip">the pile</span></div><figcaption>The 12 photos as they go in.</figcaption></figure></div>
+    <div class="grid one wide" style="max-width:640px"><figure><div class="shot"><img src="assets/b5_inliers.jpg" alt="inliers" width="661" height="682" loading="lazy"><span class="chip">inliers</span></div><figcaption>RANSAC inliers for every pair, with rows and columns sorted by the groups it found. Boxed: accepted as a real overlap.</figcaption></figure></div>
+    <div class="body-copy">
+      <p>Sorted by the groups it found, the real overlaps are the boxed blocks along the diagonal. It also accepted some pairs that skip a photo, like 7496 and 7498, which really do overlap a little. One pair that skips a photo, 7505 and 7507, just missed the cutoff with 24 inliers. That doesn't matter, because both connect through the photo between them.</p>
+      <p>It found 4 panoramas: my three, in the right order with the middle photo as the reference, and one more from the photos I never stitched. It worked out that the floor photo, 7493, overlaps 7490 too, and put all three together.</p>
+    </div>
+    <div class="grid g3 wide"><figure><div class="shot"><img src="assets/b5_pano2.jpg" alt="found: 7467, 7469, 7471" width="1600" height="1273" loading="lazy"><span class="chip">found: 7467, 7469, 7471</span></div><figcaption><b>campus</b>: 7467, 7469, 7471, with 7469 as the reference.</figcaption></figure><figure><div class="shot"><img src="assets/b5_pano0.jpg" alt="found: 7496, 7497, 7498" width="1600" height="1403" loading="lazy"><span class="chip">found: 7496, 7497, 7498</span></div><figcaption><b>street</b>: 7496, 7497, 7498, with 7497 as the reference.</figcaption></figure><figure><div class="shot"><img src="assets/b5_pano3.jpg" alt="found: 7505, 7506, 7507" width="1600" height="1438" loading="lazy"><span class="chip">found: 7505, 7506, 7507</span></div><figcaption><b>gables</b>: 7505, 7506, 7507, with 7506 as the reference.</figcaption></figure></div><div class="grid one wide" style="max-width:820px"><figure><div class="shot"><img src="assets/b5_pano1.jpg" alt="found: 7489, 7490, 7493" width="1800" height="1793" loading="lazy"><span class="chip hi">found: 7489, 7490, 7493</span></div><figcaption><b>The one I never stitched</b>: 7489, 7490, 7493, with 7490 as the reference.</figcaption></figure></div>
+    <div class="body-copy">
+      <p>The new one has a smear on the terrace wall where the photos meet. The wall is about a meter from the camera, so it's the parallax problem from the street mosaic, only much worse. Everything past the wall lines up.</p>
     </div>
   </div>
 </section>
